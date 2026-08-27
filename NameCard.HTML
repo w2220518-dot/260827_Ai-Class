@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>My Name Card</title>
+	<style>
+		:root {
+			--ink: #19243b;
+			--muted: #67728a;
+			--paper: #f6f5f1;
+			--violet: #6d5dfc;
+			--pink: #ee709a;
+			--blue: #4aa5e8;
+			--line: #e6e7ed;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-height: 100vh;
+			margin: 0;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 12% 10%, rgba(238, 112, 154, 0.16), transparent 24%),
+				radial-gradient(circle at 90% 92%, rgba(74, 165, 232, 0.18), transparent 28%),
+				var(--paper);
+			font-family: Arial, "Malgun Gothic", sans-serif;
+		}
+
+		.page {
+			width: min(1120px, calc(100% - 40px));
+			min-height: 100vh;
+			margin: auto;
+			padding: 58px 0;
+			display: grid;
+			grid-template-columns: minmax(250px, 0.75fr) minmax(420px, 1.25fr);
+			align-items: center;
+			gap: clamp(44px, 8vw, 110px);
+		}
+
+		.intro { align-self: center; }
+
+		.eyebrow {
+			margin: 0 0 13px;
+			color: var(--violet);
+			font-size: 0.73rem;
+			font-weight: 800;
+			letter-spacing: 0.19em;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			max-width: 430px;
+			margin: 0;
+			font-family: Georgia, "Times New Roman", serif;
+			font-size: clamp(2.8rem, 6vw, 5.2rem);
+			font-weight: 400;
+			letter-spacing: -0.04em;
+			line-height: 0.95;
+		}
+
+		.lead {
+			max-width: 360px;
+			margin: 23px 0 35px;
+			color: var(--muted);
+			font-size: 0.94rem;
+			line-height: 1.65;
+		}
+
+		.form {
+			max-width: 380px;
+			padding: 22px;
+			border: 1px solid rgba(255, 255, 255, 0.9);
+			border-radius: 8px;
+			background: rgba(255, 255, 255, 0.68);
+			box-shadow: 0 20px 48px rgba(38, 47, 76, 0.08);
+		}
+
+		label {
+			display: block;
+			margin-bottom: 7px;
+			color: var(--muted);
+			font-size: 0.73rem;
+			font-weight: 800;
+			letter-spacing: 0.08em;
+		}
+
+		.field + .field { margin-top: 17px; }
+
+		input {
+			width: 100%;
+			padding: 12px 13px;
+			border: 1px solid var(--line);
+			border-radius: 4px;
+			outline: 0;
+			color: var(--ink);
+			background: #fff;
+			font: inherit;
+		}
+
+		input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(109, 93, 252, 0.13); }
+
+		.preview-area {
+			display: grid;
+			place-items: center;
+			perspective: 1200px;
+		}
+
+		.card-wrap {
+			width: min(100%, 530px);
+			aspect-ratio: 1.62;
+			cursor: pointer;
+		}
+
+		.card-wrap:focus-visible { outline: 3px solid rgba(109, 93, 252, 0.5); outline-offset: 8px; }
+
+		.card {
+			position: relative;
+			width: 100%;
+			height: 100%;
+			transform-style: preserve-3d;
+			transition: transform 700ms cubic-bezier(0.2, 0.75, 0.25, 1);
+		}
+
+		.card-wrap.flipped .card { transform: rotateY(180deg); }
+
+		.card-face {
+			position: absolute;
+			inset: 0;
+			overflow: hidden;
+			padding: clamp(25px, 5vw, 44px);
+			border-radius: 14px;
+			color: #fff;
+			backface-visibility: hidden;
+			box-shadow: 0 30px 65px rgba(49, 51, 90, 0.2);
+		}
+
+		.front {
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			background: linear-gradient(126deg, #5e4be8 0%, #8872fb 48%, #ed7199 100%);
+		}
+
+		.front::before, .front::after {
+			content: "";
+			position: absolute;
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			border-radius: 50%;
+		}
+
+		.front::before { width: 320px; height: 320px; right: -130px; top: -180px; }
+		.front::after { width: 440px; height: 440px; left: -300px; bottom: -300px; }
+
+		.brand, .front-content, .front-bottom { position: relative; z-index: 1; }
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			font-size: 0.73rem;
+			font-weight: 800;
+			letter-spacing: 0.15em;
+			text-transform: uppercase;
+		}
+
+		.brand-mark {
+			width: 23px;
+			height: 23px;
+			border: 2px solid rgba(255, 255, 255, 0.85);
+			border-radius: 50%;
+		}
+
+		.front-content { margin-top: auto; }
+
+		.name {
+			margin: 0;
+			font-family: Georgia, "Times New Roman", serif;
+			font-size: clamp(2.1rem, 6vw, 4rem);
+			font-weight: 400;
+			letter-spacing: -0.04em;
+			line-height: 1;
+		}
+
+		.department { margin: 12px 0 0; color: rgba(255, 255, 255, 0.8); font-size: 0.92rem; }
+
+		.front-bottom {
+			display: flex;
+			justify-content: space-between;
+			align-items: end;
+			gap: 12px;
+			margin-top: 30px;
+			padding-top: 16px;
+			border-top: 1px solid rgba(255, 255, 255, 0.3);
+			font-size: 0.78rem;
+		}
+
+		.favorite-label { color: rgba(255, 255, 255, 0.67); }
+		.favorite { max-width: 60%; font-weight: 700; text-align: right; }
+
+		.back {
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			transform: rotateY(180deg);
+			background: linear-gradient(135deg, #202d4d, #3f5279);
+		}
+
+		.back .back-title { margin: 0; color: rgba(255, 255, 255, 0.65); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.16em; }
+		.back-message { max-width: 370px; margin: auto 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1.2; }
+		.back-hint { margin: 0; color: rgba(255, 255, 255, 0.57); font-size: 0.75rem; }
+
+		.flip-button {
+			margin-top: 25px;
+			padding: 12px 17px;
+			border: 1px solid rgba(109, 93, 252, 0.35);
+			border-radius: 4px;
+			color: var(--violet);
+			background: #fff;
+			font: 700 0.8rem Arial, sans-serif;
+			cursor: pointer;
+		}
+
+		.flip-button:hover { background: #f4f1ff; }
+
+		@media (max-width: 780px) {
+			.page { grid-template-columns: 1fr; padding: 40px 0; gap: 46px; }
+			.intro { text-align: center; }
+			.lead, .form { margin-left: auto; margin-right: auto; }
+			.lead { margin-bottom: 25px; }
+		}
+
+		@media (max-width: 480px) {
+			.page { width: min(100% - 24px, 530px); }
+			.card-face { padding: 22px; border-radius: 10px; }
+			.brand { font-size: 0.62rem; }
+			.front-bottom { margin-top: 18px; }
+		}
+	</style>
+</head>
+<body>
+	<main class="page">
+		<section class="intro" aria-labelledby="page-title">
+			<p class="eyebrow">Make your mark</p>
+			<h1 id="page-title">나를 닮은<br>명함 한 장.</h1>
+			<p class="lead">정보를 입력하면 당신만의 작은 브랜드가 완성됩니다. 카드를 클릭해 뒷면도 확인해 보세요.</p>
+			<form class="form" id="card-form">
+				<div class="field">
+					<label for="name-input">이름</label>
+					<input id="name-input" type="text" value="김하늘" maxlength="24" placeholder="이름을 입력하세요" required>
+				</div>
+				<div class="field">
+					<label for="department-input">부서</label>
+					<input id="department-input" type="text" value="브랜드 디자인팀" maxlength="30" placeholder="부서를 입력하세요" required>
+				</div>
+				<div class="field">
+					<label for="favorite-input">좋아하는 것</label>
+					<input id="favorite-input" type="text" value="느린 아침과 좋은 문장" maxlength="40" placeholder="좋아하는 것을 입력하세요" required>
+				</div>
+			</form>
+		</section>
+
+		<section class="preview-area" aria-label="명함 미리보기">
+			<div class="card-wrap" id="card-wrap" tabindex="0" role="button" aria-label="명함 뒤집기" aria-pressed="false">
+				<div class="card">
+					<article class="card-face front">
+						<div class="brand"><span class="brand-mark"></span><span>Personal identity</span></div>
+						<div class="front-content">
+							<h2 class="name" id="card-name">김하늘</h2>
+							<p class="department" id="card-department">브랜드 디자인팀</p>
+						</div>
+						<div class="front-bottom"><span class="favorite-label">LOVES</span><span class="favorite" id="card-favorite">느린 아침과 좋은 문장</span></div>
+					</article>
+					<article class="card-face back">
+						<p class="back-title">A LITTLE MORE ABOUT ME</p>
+						<p class="back-message" id="back-message">“느린 아침과 좋은 문장”을 좋아하는 김하늘입니다.</p>
+						<p class="back-hint">카드를 다시 클릭하면 앞면으로 돌아갑니다.</p>
+					</article>
+				</div>
+			</div>
+			<button class="flip-button" id="flip-button" type="button">카드 뒤집기 ↻</button>
+		</section>
+	</main>
+
+	<script>
+		const form = document.querySelector("#card-form");
+		const cardWrap = document.querySelector("#card-wrap");
+		const flipButton = document.querySelector("#flip-button");
+		const nameInput = document.querySelector("#name-input");
+		const departmentInput = document.querySelector("#department-input");
+		const favoriteInput = document.querySelector("#favorite-input");
+		const cardName = document.querySelector("#card-name");
+		const cardDepartment = document.querySelector("#card-department");
+		const cardFavorite = document.querySelector("#card-favorite");
+		const backMessage = document.querySelector("#back-message");
+
+		function updateCard() {
+			const name = nameInput.value.trim() || "이름을 입력하세요";
+			const department = departmentInput.value.trim() || "부서를 입력하세요";
+			const favorite = favoriteInput.value.trim() || "좋아하는 것을 입력하세요";
+			cardName.textContent = name;
+			cardDepartment.textContent = department;
+			cardFavorite.textContent = favorite;
+			backMessage.textContent = `“${favorite}”을 좋아하는 ${name}입니다.`;
+		}
+
+		function toggleCard() {
+			const isFlipped = cardWrap.classList.toggle("flipped");
+			cardWrap.setAttribute("aria-pressed", String(isFlipped));
+		}
+
+		form.addEventListener("input", updateCard);
+		form.addEventListener("submit", (event) => event.preventDefault());
+		cardWrap.addEventListener("click", toggleCard);
+		cardWrap.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				toggleCard();
+			}
+		});
+		flipButton.addEventListener("click", toggleCard);
+		updateCard();
+	</script>
+</body>
+</html>

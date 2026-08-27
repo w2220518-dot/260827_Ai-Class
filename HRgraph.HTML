@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>월별 채용 현황</title>
+	<style>
+		:root {
+			--ink: #1d2939;
+			--muted: #667085;
+			--line: #e7ebf0;
+			--surface: rgba(255, 255, 255, 0.92);
+			--applicants: #4677e8;
+			--screened: #e5813d;
+			--joined: #21a179;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-height: 100vh;
+			margin: 0;
+			padding: 42px 18px;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 12% 8%, rgba(70, 119, 232, 0.15), transparent 28%),
+				radial-gradient(circle at 92% 88%, rgba(33, 161, 121, 0.13), transparent 26%),
+				#f5f7fa;
+			font-family: Arial, "Malgun Gothic", sans-serif;
+		}
+
+		.dashboard { width: min(1120px, 100%); margin: 0 auto; }
+
+		.heading {
+			display: flex;
+			justify-content: space-between;
+			align-items: end;
+			gap: 24px;
+			margin-bottom: 25px;
+		}
+
+		.eyebrow {
+			margin: 0 0 9px;
+			color: var(--applicants);
+			font-size: 0.73rem;
+			font-weight: 800;
+			letter-spacing: 0.16em;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			margin: 0;
+			font-family: Georgia, "Times New Roman", serif;
+			font-size: clamp(2.1rem, 5vw, 3.6rem);
+			font-weight: 400;
+			letter-spacing: -0.04em;
+			line-height: 1;
+		}
+
+		.period {
+			margin: 0 0 4px;
+			color: var(--muted);
+			font-size: 0.82rem;
+		}
+
+		.chart-card {
+			padding: clamp(20px, 4vw, 36px);
+			border: 1px solid rgba(255, 255, 255, 0.9);
+			border-radius: 8px;
+			background: var(--surface);
+			box-shadow: 0 22px 60px rgba(31, 48, 76, 0.1);
+		}
+
+		.card-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 20px;
+			margin-bottom: 30px;
+		}
+
+		.card-title { margin: 0; font-size: 1rem; }
+
+		.legend {
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: end;
+			gap: 15px;
+			color: var(--muted);
+			font-size: 0.77rem;
+		}
+
+		.legend-item { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+		.legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+		.legend-dot.applicants { background: var(--applicants); }
+		.legend-dot.screened { background: var(--screened); }
+		.legend-dot.joined { background: var(--joined); }
+
+		.chart-wrap { position: relative; width: 100%; overflow-x: auto; }
+		svg { display: block; width: 100%; min-width: 620px; height: auto; overflow: visible; }
+
+		.grid-line { stroke: var(--line); stroke-width: 1; }
+		.axis-label { fill: var(--muted); font-size: 12px; }
+		.x-label { text-anchor: middle; }
+		.data-line { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
+		.data-line.applicants { stroke: var(--applicants); }
+		.data-line.screened { stroke: var(--screened); }
+		.data-line.joined { stroke: var(--joined); }
+		.data-point { stroke: #fff; stroke-width: 3; cursor: pointer; }
+		.data-point.applicants { fill: var(--applicants); }
+		.data-point.screened { fill: var(--screened); }
+		.data-point.joined { fill: var(--joined); }
+
+		.tooltip {
+			position: absolute;
+			z-index: 2;
+			display: none;
+			min-width: 130px;
+			padding: 11px 13px;
+			border-radius: 5px;
+			color: #fff;
+			background: #202b3c;
+			box-shadow: 0 8px 22px rgba(28, 39, 57, 0.2);
+			font-size: 0.76rem;
+			line-height: 1.7;
+			pointer-events: none;
+			transform: translate(-50%, calc(-100% - 13px));
+		}
+
+		.tooltip.visible { display: block; }
+		.tooltip strong { display: block; margin-bottom: 2px; font-size: 0.8rem; }
+
+		.summary {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 12px;
+			margin-top: 28px;
+		}
+
+		.stat {
+			padding: 16px;
+			border-top: 3px solid;
+			background: #f8fafc;
+		}
+
+		.stat.applicants { border-color: var(--applicants); }
+		.stat.screened { border-color: var(--screened); }
+		.stat.joined { border-color: var(--joined); }
+		.stat-label { margin: 0 0 7px; color: var(--muted); font-size: 0.75rem; }
+		.stat-value { margin: 0; font-size: 1.45rem; font-weight: 700; }
+		.stat-unit { color: var(--muted); font-size: 0.76rem; font-weight: 400; }
+
+		@media (max-width: 650px) {
+			body { padding: 28px 12px; }
+			.heading, .card-top { align-items: start; flex-direction: column; }
+			.legend { justify-content: start; }
+			.summary { grid-template-columns: 1fr; }
+		}
+	</style>
+</head>
+<body>
+	<main class="dashboard">
+		<header class="heading">
+			<div>
+				<p class="eyebrow">Recruiting report · 2024</p>
+				<h1>월별 채용 현황</h1>
+			</div>
+			<p class="period">1월 - 6월 누적 데이터</p>
+		</header>
+
+		<section class="chart-card" aria-labelledby="chart-title">
+			<div class="card-top">
+				<h2 class="card-title" id="chart-title">채용 퍼널 추이</h2>
+				<div class="legend" aria-label="차트 범례">
+					<span class="legend-item"><i class="legend-dot applicants"></i>지원자 수</span>
+					<span class="legend-item"><i class="legend-dot screened"></i>서류 합격자 수</span>
+					<span class="legend-item"><i class="legend-dot joined"></i>최종 입사자 수</span>
+				</div>
+			</div>
+
+			<div class="chart-wrap">
+				<svg viewBox="0 0 960 440" role="img" aria-labelledby="chart-title chart-description">
+					<desc id="chart-description">1월부터 6월까지 지원자, 서류 합격자, 최종 입사자 수의 변화</desc>
+					<g aria-hidden="true">
+						<line class="grid-line" x1="72" y1="30" x2="930" y2="30"></line>
+						<line class="grid-line" x1="72" y1="104" x2="930" y2="104"></line>
+						<line class="grid-line" x1="72" y1="178" x2="930" y2="178"></line>
+						<line class="grid-line" x1="72" y1="252" x2="930" y2="252"></line>
+						<line class="grid-line" x1="72" y1="326" x2="930" y2="326"></line>
+						<line class="grid-line" x1="72" y1="400" x2="930" y2="400"></line>
+						<text class="axis-label" x="55" y="35" text-anchor="end">100</text>
+						<text class="axis-label" x="55" y="109" text-anchor="end">80</text>
+						<text class="axis-label" x="55" y="183" text-anchor="end">60</text>
+						<text class="axis-label" x="55" y="257" text-anchor="end">40</text>
+						<text class="axis-label" x="55" y="331" text-anchor="end">20</text>
+						<text class="axis-label" x="55" y="405" text-anchor="end">0</text>
+						<text class="axis-label x-label" x="72" y="425">1월</text>
+						<text class="axis-label x-label" x="243.6" y="425">2월</text>
+						<text class="axis-label x-label" x="415.2" y="425">3월</text>
+						<text class="axis-label x-label" x="586.8" y="425">4월</text>
+						<text class="axis-label x-label" x="758.4" y="425">5월</text>
+						<text class="axis-label x-label" x="930" y="425">6월</text>
+					</g>
+					<polyline class="data-line applicants" points="72,233.5 243.6,259.4 415.2,133.6 586.8,70.7 758.4,174.3 930,48.5"></polyline>
+					<polyline class="data-line screened" points="72,355.6 243.6,363 415.2,326 586.8,307.5 758.4,333.4 930,296.4"></polyline>
+					<polyline class="data-line joined" points="72,388.9 243.6,392.6 415.2,377.8 586.8,370.4 758.4,381.5 930,366.7"></polyline>
+					<g class="points applicants" data-series="지원자 수" data-values="45,38,72,89,61,95"></g>
+					<g class="points screened" data-series="서류 합격자 수" data-values="12,10,20,25,18,28"></g>
+					<g class="points joined" data-series="최종 입사자 수" data-values="3,2,6,8,5,9"></g>
+				</svg>
+				<div class="tooltip" id="tooltip"></div>
+			</div>
+
+			<div class="summary" aria-label="누적 요약">
+				<article class="stat applicants"><p class="stat-label">총 지원자</p><p class="stat-value">400 <span class="stat-unit">명</span></p></article>
+				<article class="stat screened"><p class="stat-label">총 서류 합격자</p><p class="stat-value">113 <span class="stat-unit">명</span></p></article>
+				<article class="stat joined"><p class="stat-label">총 최종 입사자</p><p class="stat-value">33 <span class="stat-unit">명</span></p></article>
+			</div>
+		</section>
+	</main>
+
+	<script>
+		const pointPositions = [72, 243.6, 415.2, 586.8, 758.4, 930];
+		const pointY = (value) => 400 - (value * 3.7);
+		const tooltip = document.querySelector("#tooltip");
+		const chartWrap = document.querySelector(".chart-wrap");
+
+		document.querySelectorAll(".points").forEach((series) => {
+			const values = series.dataset.values.split(",").map(Number);
+			values.forEach((value, index) => {
+				const point = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+				point.setAttribute("class", `data-point ${series.classList[1]}`);
+				point.setAttribute("cx", pointPositions[index]);
+				point.setAttribute("cy", pointY(value));
+				point.setAttribute("r", "6");
+				point.dataset.month = `${index + 1}월`;
+				point.dataset.series = series.dataset.series;
+				point.dataset.value = value;
+				series.appendChild(point);
+				point.addEventListener("mouseenter", () => showTooltip(point));
+				point.addEventListener("mouseleave", () => tooltip.classList.remove("visible"));
+			});
+		});
+
+		function showTooltip(point) {
+			const svg = point.ownerSVGElement;
+			const svgRect = svg.getBoundingClientRect();
+			const wrapRect = chartWrap.getBoundingClientRect();
+			const scale = svgRect.width / 960;
+			tooltip.style.left = `${(Number(point.getAttribute("cx")) * scale) + (svgRect.left - wrapRect.left)}px`;
+			tooltip.style.top = `${(Number(point.getAttribute("cy")) * scale) + (svgRect.top - wrapRect.top)}px`;
+			tooltip.innerHTML = `<strong>${point.dataset.month}</strong>${point.dataset.series}: ${point.dataset.value}명`;
+			tooltip.classList.add("visible");
+		}
+	</script>
+</body>
+</html>

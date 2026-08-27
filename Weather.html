@@ -1,0 +1,291 @@
+<!-- API key 없이 Open-Meteo에서 도시 위치와 현재 날씨를 조회합니다. -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>오늘의 날씨</title>
+	<style>
+		:root {
+			--sky: #b8e2f2;
+			--sky-deep: #73bad8;
+			--ink: #183443;
+			--muted: #607783;
+			--white: rgba(255, 255, 255, 0.84);
+			--line: rgba(24, 52, 67, 0.14);
+			--accent: #e67e52;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-height: 100vh;
+			margin: 0;
+			display: grid;
+			place-items: center;
+			padding: 28px 16px;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.8) 0 8%, transparent 28%),
+				radial-gradient(circle at 85% 82%, rgba(255, 255, 255, 0.34), transparent 34%),
+				linear-gradient(145deg, var(--sky), var(--sky-deep));
+			font-family: Georgia, "Times New Roman", serif;
+		}
+
+		.app {
+			width: min(100%, 570px);
+		}
+
+		header { margin-bottom: 24px; }
+
+		.eyebrow {
+			margin: 0 0 8px;
+			color: var(--accent);
+			font: 700 0.76rem Arial, sans-serif;
+			letter-spacing: 0.18em;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(2.5rem, 8vw, 4.4rem);
+			font-weight: 400;
+			line-height: 0.95;
+		}
+
+		.intro {
+			margin: 15px 0 0;
+			color: var(--muted);
+			font: 0.94rem/1.5 Arial, sans-serif;
+		}
+
+		.search {
+			display: flex;
+			gap: 10px;
+			padding: 8px;
+			border: 1px solid rgba(255, 255, 255, 0.8);
+			border-radius: 7px;
+			background: rgba(255, 255, 255, 0.44);
+			box-shadow: 0 16px 40px rgba(37, 105, 132, 0.14);
+		}
+
+		input {
+			min-width: 0;
+			flex: 1;
+			padding: 13px 14px;
+			border: 0;
+			border-radius: 4px;
+			outline: 0;
+			color: var(--ink);
+			background: rgba(255, 255, 255, 0.84);
+			font: 1rem Arial, sans-serif;
+		}
+
+		input:focus { box-shadow: 0 0 0 3px rgba(230, 126, 82, 0.3); }
+
+		button {
+			padding: 0 21px;
+			border: 0;
+			border-radius: 4px;
+			color: #fff;
+			background: var(--accent);
+			font: 700 0.88rem Arial, sans-serif;
+			cursor: pointer;
+			transition: background 160ms ease, transform 160ms ease;
+		}
+
+		button:hover { background: #c9623b; transform: translateY(-1px); }
+		button:disabled { opacity: 0.65; cursor: wait; transform: none; }
+
+		.result-card {
+			min-height: 245px;
+			margin-top: 18px;
+			padding: 28px;
+			border: 1px solid rgba(255, 255, 255, 0.74);
+			border-radius: 7px;
+			background: var(--white);
+			box-shadow: 0 24px 60px rgba(37, 105, 132, 0.18);
+		}
+
+		.placeholder, .message {
+			min-height: 185px;
+			display: grid;
+			place-items: center;
+			color: var(--muted);
+			text-align: center;
+			font: 0.94rem/1.6 Arial, sans-serif;
+		}
+
+		.weather { display: none; }
+		.weather.visible { display: block; }
+		.placeholder.hidden { display: none; }
+
+		.location {
+			margin: 0;
+			font: 700 1.3rem Arial, sans-serif;
+		}
+
+		.updated {
+			margin: 6px 0 22px;
+			color: var(--muted);
+			font: 0.78rem Arial, sans-serif;
+		}
+
+		.weather-main {
+			display: flex;
+			align-items: center;
+			gap: 18px;
+		}
+
+		.weather-icon {
+			font-size: 4.5rem;
+			line-height: 1;
+		}
+
+		.temperature {
+			margin: 0;
+			font-size: clamp(3.7rem, 14vw, 6.1rem);
+			font-weight: 400;
+			line-height: 0.9;
+		}
+
+		.condition {
+			margin: 9px 0 0;
+			color: var(--muted);
+			font: 0.96rem Arial, sans-serif;
+		}
+
+		@media (max-width: 430px) {
+			.search { flex-direction: column; }
+			button { min-height: 44px; }
+			.result-card { padding: 23px 20px; }
+		}
+	</style>
+</head>
+<body>
+	<main class="app">
+		<header>
+			<p class="eyebrow">Weather today</p>
+			<h1>오늘의 날씨</h1>
+			<p class="intro">도시를 검색하면 지금 그곳의 하늘을 보여드릴게요.</p>
+		</header>
+
+		<form class="search" id="search-form">
+			<input id="city-input" type="search" placeholder="도시 이름을 입력하세요" aria-label="도시 이름" required>
+			<button id="search-button" type="submit">날씨 검색</button>
+		</form>
+
+		<section class="result-card" aria-live="polite">
+			<div class="placeholder" id="placeholder">도시 이름을 검색해 보세요.</div>
+			<div class="message" id="message" hidden></div>
+			<div class="weather" id="weather">
+				<p class="location" id="location"></p>
+				<p class="updated" id="updated"></p>
+				<div class="weather-main">
+					<span class="weather-icon" id="weather-icon" aria-hidden="true"></span>
+					<div>
+						<p class="temperature" id="temperature"></p>
+						<p class="condition" id="condition"></p>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<script>
+		const form = document.querySelector("#search-form");
+		const input = document.querySelector("#city-input");
+		const searchButton = document.querySelector("#search-button");
+		const placeholder = document.querySelector("#placeholder");
+		const message = document.querySelector("#message");
+		const weather = document.querySelector("#weather");
+		const locationElement = document.querySelector("#location");
+		const updatedElement = document.querySelector("#updated");
+		const iconElement = document.querySelector("#weather-icon");
+		const temperatureElement = document.querySelector("#temperature");
+		const conditionElement = document.querySelector("#condition");
+
+		const weatherDescriptions = {
+			0: ["맑음", "☀️"],
+			1: ["대체로 맑음", "🌤️"],
+			2: ["구름 조금", "⛅"],
+			3: ["흐림", "☁️"],
+			45: ["안개", "🌫️"],
+			48: ["짙은 안개", "🌫️"],
+			51: ["약한 이슬비", "🌦️"],
+			53: ["이슬비", "🌦️"],
+			55: ["강한 이슬비", "🌧️"],
+			61: ["약한 비", "🌦️"],
+			63: ["비", "🌧️"],
+			65: ["강한 비", "🌧️"],
+			71: ["약한 눈", "🌨️"],
+			73: ["눈", "❄️"],
+			75: ["강한 눈", "❄️"],
+			80: ["소나기", "🌦️"],
+			81: ["소나기", "🌧️"],
+			82: ["강한 소나기", "⛈️"],
+			95: ["뇌우", "⛈️"],
+			96: ["우박을 동반한 뇌우", "⛈️"],
+			99: ["강한 뇌우", "⛈️"]
+		};
+
+		function showMessage(text) {
+			placeholder.classList.add("hidden");
+			weather.classList.remove("visible");
+			message.hidden = false;
+			message.textContent = text;
+		}
+
+		function showWeather(city, data) {
+			const [condition, icon] = weatherDescriptions[data.current.weather_code] || ["알 수 없는 날씨", "🌈"];
+			placeholder.classList.add("hidden");
+			message.hidden = true;
+			weather.classList.add("visible");
+			locationElement.textContent = `${city.name}, ${city.country}`;
+			updatedElement.textContent = `현재 기준 · ${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}`;
+			iconElement.textContent = icon;
+			temperatureElement.textContent = `${Math.round(data.current.temperature_2m)}°`;
+			conditionElement.textContent = `${condition} · 체감 ${Math.round(data.current.apparent_temperature)}°`;
+		}
+
+		async function searchWeather(cityName) {
+			const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=ko&format=json`;
+			const geocodeResponse = await fetch(geocodeUrl);
+			if (!geocodeResponse.ok) throw new Error("도시 검색에 실패했습니다.");
+			const geocodeData = await geocodeResponse.json();
+			if (!geocodeData.results?.length) throw new Error("도시를 찾을 수 없습니다. 다른 이름으로 검색해 보세요.");
+
+			const city = geocodeData.results[0];
+			const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current=temperature_2m,apparent_temperature,weather_code&timezone=auto`;
+			const forecastResponse = await fetch(forecastUrl);
+			if (!forecastResponse.ok) throw new Error("날씨 정보를 가져오지 못했습니다.");
+			const forecastData = await forecastResponse.json();
+			showWeather(city, forecastData);
+		}
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const cityName = input.value.trim();
+			if (!cityName) return;
+
+			searchButton.disabled = true;
+			searchButton.textContent = "검색 중...";
+			showMessage("날씨 정보를 가져오는 중입니다.");
+			try {
+				await searchWeather(cityName);
+			} catch (error) {
+				showMessage(error.message || "잠시 후 다시 시도해 주세요.");
+			} finally {
+				searchButton.disabled = false;
+				searchButton.textContent = "날씨 검색";
+			}
+		});
+	</script>
+</body>
+</html>
+#오늘 날씨를 보여주는 웹 페이지를 만들어줘
+# 요구사항
+# - 도시 이름을 입력하면 현재 기온과 날씨 상태를 보여줘
+# - 날씨 데이터는 API키 없이 무료로 쓸 수 있는 서비스를 사용해줘
+# - 화면구성 : 도시 입력창, 검색 버튼, 결과 카드(기온, 날씨, 아이콘 또는 이모지, 도시명)
+# - 디자인은 깔끔하고 카드 형태로, 배경은 하늘색 계열로 해줘

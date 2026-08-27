@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Pomodoro Timer</title>
+	<style>
+		:root {
+			--ink: #182126;
+			--muted: #657078;
+			--paper: #f5f2ea;
+			--panel: rgba(255, 255, 255, 0.72);
+			--accent: #d95d39;
+			--accent-dark: #a83e28;
+			--ring-track: #e3ded2;
+			--shadow: 0 24px 70px rgba(54, 46, 31, 0.14);
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-height: 100vh;
+			margin: 0;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 15% 15%, rgba(240, 185, 126, 0.32), transparent 28%),
+				radial-gradient(circle at 90% 85%, rgba(117, 170, 154, 0.25), transparent 30%),
+				var(--paper);
+			font-family: Georgia, "Times New Roman", serif;
+			transition: background 500ms ease;
+		}
+
+		body.finished {
+			background:
+				radial-gradient(circle at 20% 20%, rgba(243, 126, 84, 0.38), transparent 30%),
+				#f7d7b8;
+		}
+
+		main {
+			width: min(100% - 36px, 680px);
+			min-height: 100vh;
+			margin: 0 auto;
+			padding: 48px 0 44px;
+			display: grid;
+			align-content: center;
+			gap: 30px;
+		}
+
+		header { text-align: center; }
+
+		.eyebrow {
+			margin: 0 0 9px;
+			color: var(--accent-dark);
+			font: 700 0.76rem/1.2 Arial, sans-serif;
+			letter-spacing: 0.16em;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: clamp(2.5rem, 8vw, 4.7rem);
+			font-weight: 400;
+			line-height: 0.95;
+		}
+
+		.subtitle {
+			margin: 15px 0 0;
+			color: var(--muted);
+			font: 0.95rem/1.5 Arial, sans-serif;
+		}
+
+		.timer-panel {
+			padding: 30px 24px 26px;
+			border: 1px solid rgba(255, 255, 255, 0.7);
+			border-radius: 8px;
+			background: var(--panel);
+			box-shadow: var(--shadow);
+			backdrop-filter: blur(12px);
+		}
+
+		.mode-switcher {
+			display: flex;
+			justify-content: center;
+			gap: 8px;
+			margin-bottom: 24px;
+		}
+
+		.mode-button {
+			padding: 9px 17px;
+			border: 1px solid transparent;
+			border-radius: 999px;
+			color: var(--muted);
+			background: transparent;
+			font: 700 0.78rem Arial, sans-serif;
+			cursor: pointer;
+		}
+
+		.mode-button.active {
+			border-color: rgba(217, 93, 57, 0.28);
+			color: var(--accent-dark);
+			background: rgba(217, 93, 57, 0.1);
+		}
+
+		.timer {
+			--progress: 100%;
+			width: min(72vw, 360px);
+			aspect-ratio: 1;
+			margin: 0 auto 25px;
+			padding: 13px;
+			display: grid;
+			place-items: center;
+			border-radius: 50%;
+			background: conic-gradient(var(--accent) var(--progress), var(--ring-track) 0);
+			box-shadow: 0 16px 40px rgba(92, 65, 40, 0.12);
+		}
+
+		.timer::before {
+			content: "";
+			grid-area: 1 / 1;
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+			background: #fffdf8;
+		}
+
+		.timer-content {
+			z-index: 1;
+			grid-area: 1 / 1;
+			text-align: center;
+		}
+
+		.mode-label {
+			margin: 0 0 9px;
+			color: var(--accent-dark);
+			font: 700 0.75rem Arial, sans-serif;
+			letter-spacing: 0.12em;
+		}
+
+		.time {
+			margin: 0;
+			font: 400 clamp(3.6rem, 15vw, 6.8rem)/0.95 Georgia, serif;
+			font-variant-numeric: tabular-nums;
+			letter-spacing: 0.02em;
+		}
+
+		.status {
+			min-height: 24px;
+			margin: 11px 0 0;
+			color: var(--muted);
+			font: 0.83rem Arial, sans-serif;
+		}
+
+		.controls {
+			display: flex;
+			justify-content: center;
+			gap: 11px;
+		}
+
+		.control-button {
+			min-width: 118px;
+			padding: 13px 20px;
+			border: 1px solid rgba(24, 33, 38, 0.14);
+			border-radius: 4px;
+			color: var(--ink);
+			background: #fffdf8;
+			font: 700 0.86rem Arial, sans-serif;
+			cursor: pointer;
+			transition: transform 160ms ease, background 160ms ease;
+		}
+
+		.control-button:hover { transform: translateY(-2px); }
+		.control-button:focus-visible, .mode-button:focus-visible {
+			outline: 3px solid rgba(217, 93, 57, 0.38);
+			outline-offset: 3px;
+		}
+
+		.control-button.primary {
+			border-color: var(--accent);
+			color: #fff;
+			background: var(--accent);
+		}
+
+		.control-button.primary:hover { background: var(--accent-dark); }
+
+		.cycle-note {
+			margin: 19px 0 0;
+			color: var(--muted);
+			text-align: center;
+			font: 0.78rem Arial, sans-serif;
+		}
+
+		@media (max-width: 480px) {
+			main { width: min(100% - 24px, 680px); padding-top: 30px; }
+			.timer-panel { padding: 22px 14px 20px; }
+			.controls { gap: 7px; }
+			.control-button { min-width: 0; flex: 1; padding-inline: 8px; }
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<header>
+			<p class="eyebrow">Focus, then breathe</p>
+			<h1>Pomodoro</h1>
+			<p class="subtitle">25분 집중과 5분 휴식을 차분하게 반복하세요.</p>
+		</header>
+
+		<section class="timer-panel" aria-label="포모도로 타이머">
+			<div class="mode-switcher" role="group" aria-label="타이머 모드 선택">
+				<button class="mode-button active" type="button" data-mode="focus">집중 25분</button>
+				<button class="mode-button" type="button" data-mode="break">휴식 5분</button>
+			</div>
+
+			<div class="timer" id="timer" aria-live="polite">
+				<div class="timer-content">
+					<p class="mode-label" id="mode-label">FOCUS</p>
+					<p class="time" id="time">25:00</p>
+					<p class="status" id="status">시작할 준비가 되었나요?</p>
+				</div>
+			</div>
+
+			<div class="controls">
+				<button class="control-button primary" id="start-button" type="button">시작</button>
+				<button class="control-button" id="reset-button" type="button">리셋</button>
+			</div>
+			<p class="cycle-note" id="cycle-note">집중 1회차</p>
+		</section>
+	</main>
+
+	<script>
+		const durations = { focus: 25 * 60, break: 5 * 60 };
+		const timerElement = document.querySelector("#timer");
+		const timeElement = document.querySelector("#time");
+		const modeLabelElement = document.querySelector("#mode-label");
+		const statusElement = document.querySelector("#status");
+		const cycleNoteElement = document.querySelector("#cycle-note");
+		const startButton = document.querySelector("#start-button");
+		const resetButton = document.querySelector("#reset-button");
+		const modeButtons = document.querySelectorAll(".mode-button");
+
+		let mode = "focus";
+		let remainingSeconds = durations[mode];
+		let isRunning = false;
+		let timerId = null;
+		let focusCycles = 1;
+		let audioContext;
+
+		function updateDisplay() {
+			const minutes = Math.floor(remainingSeconds / 60);
+			const seconds = remainingSeconds % 60;
+			timeElement.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+			const progress = (remainingSeconds / durations[mode]) * 100;
+			timerElement.style.setProperty("--progress", `${progress}%`);
+			modeLabelElement.textContent = mode === "focus" ? "FOCUS" : "BREAK";
+			cycleNoteElement.textContent = `집중 ${focusCycles}회차`;
+		}
+
+		function playAlert() {
+			const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+			if (!AudioContextClass) return;
+			audioContext ??= new AudioContextClass();
+			const now = audioContext.currentTime;
+			[0, 0.18, 0.36].forEach((offset) => {
+				const oscillator = audioContext.createOscillator();
+				const gain = audioContext.createGain();
+				oscillator.frequency.value = 660;
+				gain.gain.setValueAtTime(0.001, now + offset);
+				gain.gain.exponentialRampToValueAtTime(0.18, now + offset + 0.02);
+				gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.16);
+				oscillator.connect(gain).connect(audioContext.destination);
+				oscillator.start(now + offset);
+				oscillator.stop(now + offset + 0.18);
+			});
+		}
+
+		function switchMode(nextMode) {
+			mode = nextMode;
+			remainingSeconds = durations[mode];
+			document.body.classList.remove("finished");
+			modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
+			statusElement.textContent = isRunning ? "집중할 시간입니다." : "시작할 준비가 되었나요?";
+			updateDisplay();
+		}
+
+		function finishMode() {
+			playAlert();
+			document.body.classList.add("finished");
+			const nextMode = mode === "focus" ? "break" : "focus";
+			if (mode === "focus") focusCycles += 1;
+			mode = nextMode;
+			remainingSeconds = durations[mode];
+			statusElement.textContent = mode === "focus" ? "휴식이 끝났습니다. 다시 집중해요." : "집중 시간이 끝났습니다. 잠시 쉬세요.";
+			modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
+			updateDisplay();
+		}
+
+		function toggleTimer() {
+			if (isRunning) {
+				clearInterval(timerId);
+				timerId = null;
+				isRunning = false;
+				startButton.textContent = "계속하기";
+				statusElement.textContent = "잠시 멈췄습니다.";
+				return;
+			}
+
+			isRunning = true;
+			startButton.textContent = "일시정지";
+			statusElement.textContent = mode === "focus" ? "집중할 시간입니다." : "편하게 쉬세요.";
+			timerId = setInterval(() => {
+				remainingSeconds -= 1;
+				if (remainingSeconds <= 0) {
+					clearInterval(timerId);
+					timerId = null;
+					isRunning = false;
+					startButton.textContent = "시작";
+					finishMode();
+				}
+				updateDisplay();
+			}, 1000);
+		}
+
+		function resetTimer() {
+			clearInterval(timerId);
+			timerId = null;
+			isRunning = false;
+			mode = "focus";
+			focusCycles = 1;
+			remainingSeconds = durations[mode];
+			startButton.textContent = "시작";
+			statusElement.textContent = "시작할 준비가 되었나요?";
+			document.body.classList.remove("finished");
+			modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
+			updateDisplay();
+		}
+
+		startButton.addEventListener("click", toggleTimer);
+		resetButton.addEventListener("click", resetTimer);
+		modeButtons.forEach((button) => button.addEventListener("click", () => {
+			if (!isRunning) switchMode(button.dataset.mode);
+		}));
+		updateDisplay();
+	</script>
+</body>
+</html>
